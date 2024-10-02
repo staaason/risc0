@@ -16,26 +16,30 @@
 
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use risc0_zkvm::guest::env;
+use serde::{Deserialize, Serialize};
 
 risc0_zkvm::guest::entry!(main);
 
+#[derive(Serialize, Deserialize)]
+pub struct SignaturesBatch {
+    pub signatures: Vec<Vec<u8>>,
+    pub messages: Vec<Vec<u8>>,
+    pub verifying_keys: Vec<[u8; 32]>,
+}
+
 fn main() {
     // Decode the verifying key, message, and signature from the inputs.
-    let (iterations, encoded_verifying_key, message, signature_bytes): (
-        u32,
-        [u8; 32],
-        Vec<u8>,
-        Vec<u8>,
-    ) = env::read();
-    let verifying_key = VerifyingKey::from_bytes(&encoded_verifying_key).unwrap();
-    let signature: Signature = Signature::from_slice(&signature_bytes).unwrap();
-    // Verify the signature, panicking if verification fails.
-    for _ in 0..iterations {
-        verifying_key
-            .verify(&message, &signature)
-            .expect("Ed25519 signature verification failed");
+    let batch: SignaturesBatch = env::read();
+
+    for i in 0..batch.signatures.len() {
+        let verifying_key = VerifyingKey::from_bytes(&batch.verifying_keys[i]).unwrap();
+        let signature: Signature = Signature::from_slice(&batch.signatures[i]).unwrap();
+            verifying_key
+                .verify(&batch.messages[i], &signature)
+                .expect("Ed25519 signature verification failed");
+
     }
 
     // Commit to the journal the verifying key and message that was signed.
-    env::commit(&(encoded_verifying_key, message));
+    env::commit(&(1));
 }

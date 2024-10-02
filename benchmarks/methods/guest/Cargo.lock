@@ -1027,6 +1027,7 @@ dependencies = [
  "risc0-benchmark-lib",
  "risc0-zkp",
  "risc0-zkvm",
+ "serde",
  "sha3",
  "starknet-crypto",
 ]
